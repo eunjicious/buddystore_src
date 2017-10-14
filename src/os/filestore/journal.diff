@@ -1,0 +1,485 @@
+19c19
+< #include "FileJournal.h"
+---
+> #include "BuddyJournal.h"
+22c22,23
+< #include "FileStore.h"
+---
+> //#include "FileStore.h"
+> #include "BuddyLogger.h"
+50a52,76
+> #if 0
+> enum {
+>   l_buddystore_first = 84000,
+>   l_buddystore_journal_queue_ops,
+>   l_buddystore_journal_queue_bytes,
+>   l_buddystore_journal_ops,
+>   l_buddystore_journal_bytes,
+>   l_buddystore_journal_latency,
+>   l_buddystore_journal_wr,
+>   l_buddystore_journal_wr_bytes,
+>   l_buddystore_journal_full,
+>   l_buddystore_committing,
+>   l_buddystore_commitcycle,
+>   l_buddystore_commitcycle_interval,
+>   l_buddystore_commitcycle_latency,
+>   l_buddystore_op_queue_max_ops,
+>   l_buddystore_op_queue_ops,
+>   l_buddystore_ops,
+>   l_buddystore_op_queue_max_bytes,
+>   l_buddystore_op_queue_bytes,
+>   l_buddystore_bytes,
+>   l_buddystore_apply_latency,
+>   l_buddystore_queue_transaction_latency_avg,
+>   l_buddystore_last,
+> };
+51a78
+> #endif
+53c80
+< int FileJournal::_open(bool forwrite, bool create)
+---
+> int BuddyJournal::_open(bool forwrite, bool create)
+70c97
+<       derr << "FileJournal::_open: error closing old fd: "
+---
+>       derr << "BuddyJournal::_open: error closing old fd: "
+77c104
+<     dout(2) << "FileJournal::_open unable to open journal "
+---
+>     dout(2) << "BuddyJournal::_open unable to open journal "
+86c113
+<     derr << "FileJournal::_open: unable to fstat journal: " << cpp_strerror(ret) << dendl;
+---
+>     derr << "BuddyJournal::_open: unable to fstat journal: " << cpp_strerror(ret) << dendl;
+95c122
+<       derr << "FileJournal::_open: disabling aio for non-block journal.  Use "
+---
+>       derr << "BuddyJournal::_open: disabling aio for non-block journal.  Use "
+101c128
+<     derr << "FileJournal::_open: wrong journal file type: " << st.st_mode
+---
+>     derr << "BuddyJournal::_open: wrong journal file type: " << st.st_mode
+117c144
+< 	  derr << "FileJournal::_open: user's limit of aio events exceeded. "
+---
+> 	  derr << "BuddyJournal::_open: user's limit of aio events exceeded. "
+121c148
+< 	  derr << "FileJournal::_open: unable to setup io_context " << cpp_strerror(-ret) << dendl;
+---
+> 	  derr << "BuddyJournal::_open: unable to setup io_context " << cpp_strerror(-ret) << dendl;
+146c173
+< int FileJournal::_open_block_device()
+---
+> int BuddyJournal::_open_block_device()
+177c204
+< int FileJournal::_open_file(int64_t oldsize, blksize_t blksize,
+---
+> int BuddyJournal::_open_file(int64_t oldsize, blksize_t blksize,
+197c224
+<       derr << "FileJournal::_open_file : unable to extend journal to "
+---
+>       derr << "BuddyJournal::_open_file : unable to extend journal to "
+204c231
+<       derr << "FileJournal::_open_file : unable to preallocation journal to "
+---
+>       derr << "BuddyJournal::_open_file : unable to preallocation journal to "
+219c246
+<       derr << "FileJournal::_open_file : unable to preallocation journal to "
+---
+>       derr << "BuddyJournal::_open_file : unable to preallocation journal to "
+234c261
+<     derr << "FileJournal::_open_file : zeroing journal" << dendl;
+---
+>     derr << "BuddyJournal::_open_file : zeroing journal" << dendl;
+268c295
+< int FileJournal::check()
+---
+> int BuddyJournal::check()
+297c324
+< int FileJournal::create()
+---
+> int BuddyJournal::create()
+333c360
+<     derr << "FileJournal::create : create write header error "
+---
+>     derr << "BuddyJournal::create : create write header error "
+342c369
+<     derr << "FileJournal::create: failed to allocate " << block_size
+---
+>     derr << "BuddyJournal::create: failed to allocate " << block_size
+349c376
+<     derr << "FileJournal::create: error zeroing first " << block_size
+---
+>     derr << "BuddyJournal::create: error zeroing first " << block_size
+357c384
+<     derr << "FileJournal::create: OSD journal is not large enough to hold "
+---
+>     derr << "BuddyJournal::create: OSD journal is not large enough to hold "
+372c399
+<     derr << "FileJournal::create: error closing fd: " << cpp_strerror(ret)
+---
+>     derr << "BuddyJournal::create: error closing fd: " << cpp_strerror(ret)
+381c408
+< int FileJournal::peek_fsid(uuid_d& fsid)
+---
+> int BuddyJournal::peek_fsid(uuid_d& fsid)
+396c423
+< int FileJournal::open(uint64_t fs_op_seq)
+---
+> int BuddyJournal::open(uint64_t fs_op_seq)
+424c451
+<     derr << "FileJournal::open: ondisk fsid " << header.fsid << " doesn't match expected " << fsid
+---
+>     derr << "BuddyJournal::open: ondisk fsid " << header.fsid << " doesn't match expected " << fsid
+498c525
+< void FileJournal::_close(int fd) const
+---
+> void BuddyJournal::_close(int fd) const
+503c530
+< void FileJournal::close()
+---
+> void BuddyJournal::close()
+519c546
+< int FileJournal::dump(ostream& out)
+---
+> int BuddyJournal::dump(ostream& out)
+524c551
+< int FileJournal::simple_dump(ostream& out)
+---
+> int BuddyJournal::simple_dump(ostream& out)
+529c556
+< int FileJournal::_dump(ostream& out, bool simple)
+---
+> int BuddyJournal::_dump(ostream& out, bool simple)
+537c564
+< int FileJournal::_fdump(Formatter &f, bool simple)
+---
+> int BuddyJournal::_fdump(Formatter &f, bool simple)
+631c658
+< void FileJournal::start_writer()
+---
+> void BuddyJournal::start_writer()
+642c669
+< void FileJournal::stop_writer()
+---
+> void BuddyJournal::stop_writer()
+678c705
+< void FileJournal::print_header(const header_t &header) const
+---
+> void BuddyJournal::print_header(const header_t &header) const
+688c715
+< int FileJournal::read_header(header_t *hdr) const
+---
+> int BuddyJournal::read_header(header_t *hdr) const
+740c767
+< bufferptr FileJournal::prepare_header()
+---
+> bufferptr BuddyJournal::prepare_header()
+758c785
+< void FileJournal::write_header_sync()
+---
+> void BuddyJournal::write_header_sync()
+767c794
+< int FileJournal::check_for_full(uint64_t seq, off64_t pos, off64_t size)
+---
+> int BuddyJournal::check_for_full(uint64_t seq, off64_t pos, off64_t size)
+810c837
+< int FileJournal::prepare_multi_write(bufferlist& bl, uint64_t& orig_ops, uint64_t& orig_bytes)
+---
+> int BuddyJournal::prepare_multi_write(bufferlist& bl, uint64_t& orig_ops, uint64_t& orig_bytes)
+811a839,840
+>   dout(10) << __func__ << dendl;
+> 
+847c876
+<           logger->inc(l_filestore_journal_full);
+---
+>           logger->inc(l_buddystore_journal_full);
+892c921
+< void FileJournal::queue_write_fin(uint64_t seq, Context *fin)
+---
+> void BuddyJournal::queue_write_fin(uint64_t seq, Context *fin)
+910c939
+< void FileJournal::queue_completions_thru(uint64_t seq)
+---
+> void BuddyJournal::queue_completions_thru(uint64_t seq)
+928c957
+<       logger->tinc(l_filestore_journal_latency, lat);
+---
+>       logger->tinc(l_buddystore_journal_latency, lat);
+941c970
+< int FileJournal::prepare_single_write(write_item &next_write, bufferlist& bl, off64_t& queue_pos, uint64_t& orig_ops, uint64_t& orig_bytes)
+---
+> int BuddyJournal::prepare_single_write(write_item &next_write, bufferlist& bl, off64_t& queue_pos, uint64_t& orig_ops, uint64_t& orig_bytes)
+942a972,974
+> 
+>   dout(10) << __func__ << dendl;
+> 
+980a1013
+>   dout(10) << " enqueue_journalq  = " << seq << dendl;
+991c1024
+< void FileJournal::check_align(off64_t pos, bufferlist& bl)
+---
+> void BuddyJournal::check_align(off64_t pos, bufferlist& bl)
+1001c1034
+< int FileJournal::write_bl(off64_t& pos, bufferlist& bl)
+---
+> int BuddyJournal::write_bl(off64_t& pos, bufferlist& bl)
+1008c1041
+<     derr << "FileJournal::write_bl : lseek64 failed " << cpp_strerror(ret) << dendl;
+---
+>     derr << "BuddyJournal::write_bl : lseek64 failed " << cpp_strerror(ret) << dendl;
+1013c1046
+<     derr << "FileJournal::write_bl : write_fd failed: " << cpp_strerror(ret) << dendl;
+---
+>     derr << "BuddyJournal::write_bl : write_fd failed: " << cpp_strerror(ret) << dendl;
+1022c1055
+< void FileJournal::do_write(bufferlist& bl)
+---
+> void BuddyJournal::do_write(bufferlist& bl)
+1023a1057
+>   dout(10) << __func__ << " bl.length() = " << bl.length() << dendl;
+1082c1116
+<       derr << "FileJournal::do_write: write_bl(pos=" << orig_pos
+---
+>       derr << "BuddyJournal::do_write: write_bl(pos=" << orig_pos
+1089c1123
+<       derr << "FileJournal::do_write: write_bl(pos=" << orig_pos
+---
+>       derr << "BuddyJournal::do_write: write_bl(pos=" << orig_pos
+1100c1134
+< 	derr << "FileJournal::do_write: pwrite(fd=" << fd
+---
+> 	derr << "BuddyJournal::do_write: pwrite(fd=" << fd
+1108c1142
+<       derr << "FileJournal::do_write: write_bl(pos=" << pos
+---
+>       derr << "BuddyJournal::do_write: write_bl(pos=" << pos
+1170a1205
+> 	// 여기로 들어가는 듯. 
+1178c1213
+< void FileJournal::flush()
+---
+> void BuddyJournal::flush()
+1192c1227
+< void FileJournal::write_thread_entry()
+---
+> void BuddyJournal::write_thread_entry()
+1267,1268c1302,1303
+<       logger->inc(l_filestore_journal_wr);
+<       logger->inc(l_filestore_journal_wr_bytes, bl.length());
+---
+>       logger->inc(l_buddystore_journal_wr);
+>       logger->inc(l_buddystore_journal_wr_bytes, bl.length());
+1270a1306
+>     dout(10) << "write_thread_entry do_write "<< dendl;
+1286c1322
+< void FileJournal::do_aio_write(bufferlist& bl)
+---
+> void BuddyJournal::do_aio_write(bufferlist& bl)
+1323c1359
+<       derr << "FileJournal::do_aio_write: write_aio_bl(pos=" << pos
+---
+>       derr << "BuddyJournal::do_aio_write: write_aio_bl(pos=" << pos
+1335c1371
+<       derr << "FileJournal::do_aio_write: write_aio_bl(pos=" << pos
+---
+>       derr << "BuddyJournal::do_aio_write: write_aio_bl(pos=" << pos
+1346c1382
+< 	derr << "FileJournal::do_aio_write: write_aio_bl(header) failed" << dendl;
+---
+> 	derr << "BuddyJournal::do_aio_write: write_aio_bl(header) failed" << dendl;
+1352c1388
+<       derr << "FileJournal::do_aio_write: write_aio_bl(pos=" << pos
+---
+>       derr << "BuddyJournal::do_aio_write: write_aio_bl(pos=" << pos
+1370c1406
+< int FileJournal::write_aio_bl(off64_t& pos, bufferlist& bl, uint64_t seq)
+---
+> int BuddyJournal::write_aio_bl(off64_t& pos, bufferlist& bl, uint64_t seq)
+1439c1475
+< void FileJournal::write_finish_thread_entry()
+---
+> void BuddyJournal::write_finish_thread_entry()
+1491c1527
+< void FileJournal::check_aio_completion()
+---
+> void BuddyJournal::check_aio_completion()
+1539c1575,1577
+< int FileJournal::prepare_entry(vector<ObjectStore::Transaction>& tls, bufferlist* tbl) {
+---
+> int BuddyJournal::prepare_entry(vector<ObjectStore::Transaction>& tls, bufferlist* tbl) {
+> //  dout(10) << "prepare_entry " << tls << dendl;
+> 
+1541c1579,1581
+<   int data_len = cct->_conf->journal_align_min_size - 1;
+---
+> 
+> 
+>   //int data_len = cct->_conf->journal_align_min_size - 1;
+1543a1584
+> 
+1545a1587
+> #if 0
+1551a1594,1596
+> #endif
+>     // meta_data_bl + op_bl + coll_index + object_index + data 이렇게 encoding 됨. 
+>     (*p).encode_punch_hole(bl);
+1553,1554c1598,1600
+<   dout(10) << __func__ << " bl (transaction encode) " << bl.length() << dendl;
+<   if (tbl->length()) {
+---
+> 
+>   // buddy 에서는 write 가 있다면 꼭 있어야겠지. 
+>   if (tbl && tbl->length())
+1556c1602
+<   }
+---
+> 
+1562,1563c1608,1609
+<   if (data_align >= 0)
+<     h.pre_pad = ((unsigned int)data_align - (unsigned int)head_size) & ~CEPH_PAGE_MASK;
+---
+>   //if (data_align >= 0)
+>   //  h.pre_pad = ((unsigned int)data_align - (unsigned int)head_size) & ~CEPH_PAGE_MASK;
+1593c1639
+< void FileJournal::submit_entry(uint64_t seq, bufferlist& e, uint32_t orig_len,
+---
+> void BuddyJournal::submit_entry(uint64_t seq, bufferlist& e, uint32_t orig_len,
+1606,1607c1652,1653
+<     logger->inc(l_filestore_journal_queue_bytes, orig_len);
+<     logger->inc(l_filestore_journal_queue_ops, 1);
+---
+>     logger->inc(l_buddystore_journal_queue_bytes, orig_len);
+>     logger->inc(l_buddystore_journal_queue_ops, 1);
+1612,1613c1658,1659
+<     logger->inc(l_filestore_journal_ops, 1);
+<     logger->inc(l_filestore_journal_bytes, e.length());
+---
+>     logger->inc(l_buddystore_journal_ops, 1);
+>     logger->inc(l_buddystore_journal_bytes, e.length());
+1638c1684
+< bool FileJournal::writeq_empty()
+---
+> bool BuddyJournal::writeq_empty()
+1644c1690
+< FileJournal::write_item &FileJournal::peek_write()
+---
+> BuddyJournal::write_item &BuddyJournal::peek_write()
+1651c1697
+< void FileJournal::pop_write()
+---
+> void BuddyJournal::pop_write()
+1656,1657c1702,1703
+<     logger->dec(l_filestore_journal_queue_bytes, writeq.front().orig_len);
+<     logger->dec(l_filestore_journal_queue_ops, 1);
+---
+>     logger->dec(l_buddystore_journal_queue_bytes, writeq.front().orig_len);
+>     logger->dec(l_buddystore_journal_queue_ops, 1);
+1662c1708
+< void FileJournal::batch_pop_write(list<write_item> &items)
+---
+> void BuddyJournal::batch_pop_write(list<write_item> &items)
+1671,1672c1717,1718
+<       logger->dec(l_filestore_journal_queue_bytes, i.orig_len);
+<       logger->dec(l_filestore_journal_queue_ops, 1);
+---
+>       logger->dec(l_buddystore_journal_queue_bytes, i.orig_len);
+>       logger->dec(l_buddystore_journal_queue_ops, 1);
+1677c1723
+< void FileJournal::batch_unpop_write(list<write_item> &items)
+---
+> void BuddyJournal::batch_unpop_write(list<write_item> &items)
+1682,1683c1728,1729
+<       logger->inc(l_filestore_journal_queue_bytes, i.orig_len);
+<       logger->inc(l_filestore_journal_queue_ops, 1);
+---
+>       logger->inc(l_buddystore_journal_queue_bytes, i.orig_len);
+>       logger->inc(l_buddystore_journal_queue_ops, 1);
+1690c1736
+< void FileJournal::commit_start(uint64_t seq)
+---
+> void BuddyJournal::commit_start(uint64_t seq)
+1725c1771
+< void FileJournal::do_discard(int64_t offset, int64_t end)
+---
+> void BuddyJournal::do_discard(int64_t offset, int64_t end)
+1739c1785
+< void FileJournal::committed_thru(uint64_t seq)
+---
+> void BuddyJournal::committed_thru(uint64_t seq)
+1740a1787
+>   dout(10) << __func__ << dendl;
+1745,1746c1792,1793
+<     logger->dec(l_filestore_journal_ops, released.first);
+<     logger->dec(l_filestore_journal_bytes, released.second);
+---
+>     logger->dec(l_buddystore_journal_ops, released.first);
+>     logger->dec(l_buddystore_journal_bytes, released.second);
+1815c1862
+< void FileJournal::complete_write(uint64_t ops, uint64_t bytes)
+---
+> void BuddyJournal::complete_write(uint64_t ops, uint64_t bytes)
+1821c1868
+< int FileJournal::make_writeable()
+---
+> int BuddyJournal::make_writeable()
+1839a1887
+>   // write_thread start 
+1844c1892
+< int FileJournal::set_throttle_params()
+---
+> int BuddyJournal::set_throttle_params()
+1864c1912
+< const char** FileJournal::get_tracked_conf_keys() const
+---
+> const char** BuddyJournal::get_tracked_conf_keys() const
+1876c1924
+< void FileJournal::wrap_read_bl(
+---
+> void BuddyJournal::wrap_read_bl(
+1899c1947
+<       derr << "FileJournal::wrap_read_bl: safe_read_exact " << pos << "~" << len << " returned "
+---
+>       derr << "BuddyJournal::wrap_read_bl: safe_read_exact " << pos << "~" << len << " returned "
+1913c1961
+< bool FileJournal::read_entry(
+---
+> bool BuddyJournal::read_entry(
+1945,1946c1993,1994
+<       logger->inc(l_filestore_journal_ops, 1);
+<       logger->inc(l_filestore_journal_bytes, amount_to_take);
+---
+>       logger->inc(l_buddystore_journal_ops, 1);
+>       logger->inc(l_buddystore_journal_bytes, amount_to_take);
+1978c2026
+< FileJournal::read_entry_result FileJournal::do_read_entry(
+---
+> BuddyJournal::read_entry_result BuddyJournal::do_read_entry(
+2065c2113
+< void FileJournal::reserve_throttle_and_backoff(uint64_t count)
+---
+> void BuddyJournal::reserve_throttle_and_backoff(uint64_t count)
+2070c2118
+< void FileJournal::get_header(
+---
+> void BuddyJournal::get_header(
+2101c2149
+< void FileJournal::corrupt(
+---
+> void BuddyJournal::corrupt(
+2124c2172
+< void FileJournal::corrupt_payload(
+---
+> void BuddyJournal::corrupt_payload(
+2138c2186
+< void FileJournal::corrupt_footer_magic(
+---
+> void BuddyJournal::corrupt_footer_magic(
+2154c2202
+< void FileJournal::corrupt_header_magic(
+---
+> void BuddyJournal::corrupt_header_magic(
+2168c2216
+< off64_t FileJournal::get_journal_size_estimate()
+---
+> off64_t BuddyJournal::get_journal_size_estimate()

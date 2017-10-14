@@ -1,0 +1,23 @@
+BDJournalingObjectStore.cc:32:    journal->close();
+BDJournalingObjectStore.cc:60:  int err = journal->open(op_seq);
+BDJournalingObjectStore.cc:75:    if (!journal->read_entry(bl, seq)) {
+BDJournalingObjectStore.cc:112:  err = journal->make_writeable();
+BDJournalingObjectStore.cc:222:    journal->commit_start(committing_seq);  // tell the journal too
+BDJournalingObjectStore.cc:243:    journal->committed_thru(committing_seq);
+BDJournalingObjectStore.cc:265:  if (journal && journal->is_writeable()) {
+BDJournalingObjectStore.cc:266:    journal->submit_entry(op, tbl, orig_len, onjournal, osd_op);
+BuddyJournal.h:371:      journal->write_thread_entry();
+BuddyJournal.h:381:      journal->write_finish_thread_entry();
+BuddyStore.cc:59:      journal->logger = logger;
+BuddyStore.cc:76:    ret = journal->check();
+BuddyStore.cc:78:      ret = journal->create();
+BuddyStore.cc:113:    journal->set_wait_on_full(true);
+BuddyStore.cc:906:    int orig_len = journal->prepare_entry(o->tls, &tbl);
+BuddyStore.cc:909:    journal->reserve_throttle_and_backoff(tbl.length());
+BuddyStore.cc:1584://  journal->prepare_entry();
+BuddyStore.cc.bak:55:      journal->logger = logger;
+BuddyStore.cc.bak:90:    ret = journal->check();
+BuddyStore.cc.bak:92:      ret = journal->create();
+BuddyStore.cc.bak:125:    journal->set_wait_on_full(true);
+BuddyStore.cc.bak:857:  int orig_len = journal->prepare_entry(tls, NULL);
+BuddyStore.cc.bak:1893://  journal->prepare_entry();

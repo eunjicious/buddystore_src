@@ -1,0 +1,544 @@
+1c1
+< #include "BuddyHashIndexFile.h"
+---
+> #include "BuddyLogDataFileObject.h"
+7,8c7
+< 
+< const static int64_t ONE_MEG(1 << 20);
+---
+> //const static int64_t ONE_MEG(1 << 20);
+18c17
+< int BuddyHashIndexFile::create_or_open_file(int out_flags)
+---
+> int BuddyLogDataFileObject::create_or_open_file(int out_flags)
+39c38,47
+<   hfd = r;
+---
+>   dfd = r;
+> 
+>   // test .. 
+> 
+>   bufferlist bl;
+>   bl.append_zero(4096);
+> 
+>   r = write_fd(bl, 0);
+>   ldout(cct, 10) << __func__ << " test write ret = " << r << dendl;
+> 
+42,43c50,52
+<   if(preallocation)
+<     preallocate(0, max_fbytes);
+---
+>   //if(preallocation)
+>   //  preallocate(0, BUDDY_PREALLOC_SIZE);
+>     //preallocate(0, max_fbytes);
+45c54
+<   ldout(cct,10) << __func__ << " fd " << hfd << dendl;
+---
+>   ldout(cct,10) << __func__ << " fd " << dfd << dendl;
+54c63
+< int BuddyHashIndexFile::delete_file()
+---
+> int BuddyLogDataFileObject::delete_file()
+58c67
+<   if (hfd > 0)
+---
+>   if (dfd > 0)
+71c80
+< int BuddyHashIndexFile::close_file()
+---
+> int BuddyLogDataFileObject::close_file()
+73c82
+<   if (hfd < 0){
+---
+>   if (dfd < 0){
+80c89
+<   VOID_TEMP_FAILURE_RETRY(::close(hfd));
+---
+>   VOID_TEMP_FAILURE_RETRY(::close(dfd));
+84,90c93,94
+< 
+< 
+< /******
+<  * alloc_space 
+<  */
+< 
+< int BuddyHashIndexFile::alloc_space(int type, const ghobject_t& oid, 
+---
+> #if 0
+> int BuddyLogDataFileObject::alloc_space(int type, const ghobject_t& oid, 
+104c108,116
+<   RWLock::WLocker l(lock);
+---
+>   rwlock::wlocker l(lock);
+> 
+>   // 새로운 공간 할당. pos : 현재 할당된 뒤의 새로운 블록 첫주소.
+>   // 기존 것 지워줘야 함. map 에서 기존 것을 찾은다음에 겹치는 부분 지우는거 해야함.  
+>   // shadowing 아직 구현안해서.. vector 는 하나겠지 
+>   
+>   // map 에서 일단 기존 것 찾아서 지워줄 수 있도록 한다음에 추가해야함.  
+>   buddy_lkey_t key = new buddy_lkey_t(oid, ooff, );
+> 
+106,110c118,122
+<   // check pent hoff 
+<   map<off_t, buddy_hindex_t>::iterator p, prev, next;
+<   p = hash_index_map.lower_bound(hoff);
+<   //만약에 여기서 hash_index_map 이 비어있으면?? 
+<   //뭐가 튀어나오는거지? 
+---
+>   map<buddy_lkey_t, buddy_lindex_t>::iterator p, prev, next;
+>   p = log_index_map.lower_bound(hoff);
+> 
+>   // 만약에 여기서 hash_index_map 이 비어있으면?? 
+>   // 뭐가 튀어나오는거지? 
+115,116c127,128
+<   if(p != hash_index_map.begin()) prev--;
+<   if(p != hash_index_map.end()) next++;
+---
+>   if(p != log_index_map.begin()) prev--;
+>   if(p != log_index_map.end()) next++;
+134,135c146,147
+<   ldout(cct, 10) << __func__  << " hash_index_map size " << hash_index_map.size() << " lowerbound " << p->first << dendl;
+<   _dump_hash_index_map(); 
+---
+>   ldout(cct, 10) << __func__  << " log_index_map size " << log_index_map.size() << " lowerbound " << p->first << dendl;
+>   _dump_log_index_map(); 
+146c158
+<       ldout(cct, 10) << __func__ << " hash_index_map has elem" << dendl;
+---
+>       ldout(cct, 11) << __func__ << " hash_index_map has elem" << dendl;
+162c174
+<     buddy_hindex_t* nhindex = new buddy_hindex_t(oid, BD_DATA_T, hoff, bytes, round_up(bytes)); 
+---
+>     buddy_lindex_t* nhindex = new buddy_lindex_t(oid, bd_data_t, hoff, bytes, round_up(bytes)); 
+211c223
+<       buddy_hindex_t* nhindex = new buddy_hindex_t(oid, BD_DATA_T, hoff, bytes, round_up(bytes)); 
+---
+>       buddy_lindex_t* nhindex = new buddy_lindex_t(oid, bd_data_t, hoff, bytes, round_up(bytes)); 
+223c235
+<   //buddy_iov_t* niov = new buddy_iov_t(&cid, BD_ORIG_F, fname, ooff, hoff + ooff, bytes); 
+---
+>   //buddy_iov_t* niov = new buddy_iov_t(&cid, bd_orig_f, fname, ooff, hoff + ooff, bytes); 
+227c239
+<   buddy_iov_t* niov = new buddy_iov_t(&cid, BD_ORIG_F, fname, 0, hoff + ooff, bytes); 
+---
+>   buddy_iov_t* niov = new buddy_iov_t(&cid, bd_orig_f, fname, 0, hoff + ooff, bytes); 
+232a245
+> #endif
+234c247,251
+< int BuddyHashIndexFile::release_space(const ghobject_t& oid)
+---
+> /*****************
+>  * index update
+>  ****/
+> int BuddyLogDataFileObject::insert_index(const ghobject_t& oid, const off_t ooff, 
+>     const off_t foff, const ssize_t bytes )
+235a253,257
+> 
+> 
+>   ldout(cct, 10) << __func__ << " oid " << oid << " ooff " << ooff <<
+>     " foff " << foff << " bytes " << bytes << dendl;
+> 
+237,238c259,443
+<   off_t hoff = hash_to_hoff(oid);
+<   return hash_index_map.erase(hoff);
+---
+> 
+>   buddy_index_map_t* omap;
+>   buddy_index_t* nidx = new buddy_index_t(ooff, foff, bytes); 
+> 
+>   off_t ns = 0, ne = 0, os = 0, oe = 0;
+>   map<off_t, buddy_index_t>::iterator sp, p;
+> 
+>   // find map 
+>   map<ghobject_t, buddy_index_map_t>::iterator omap_p = log_index_map.find(oid);
+> 
+>   // not found? create and insert entry. done! 
+>   if(omap_p == log_index_map.end()){
+>     ldout(cct, 15) << __func__ <<  " oid is not found. create index map " << dendl;
+> 
+>     // create index_map 
+>     omap = new buddy_index_map_t();
+>     log_index_map.insert(make_pair(oid, (*omap)));
+>     omap_p = log_index_map.find(oid);
+>   }
+> 
+>   // found map 
+>   omap = &omap_p->second;
+>   sp = omap->index_map.upper_bound(ooff);
+>   
+>   if (sp == omap->index_map.begin() && sp == omap->index_map.end()){
+>     ldout(cct, 15) << __func__ << " empty index map " << dendl;
+>     goto insert_new_index;
+>   }
+> 
+>   // prev 부터 돌면서 남아있는게 없을 때까지 punch out 
+>   // 겹치는게 있으면 original map 에서 줄여버리거나 삭제. 
+>   
+>   ns = ooff;
+>   ne = ooff + bytes;
+> 
+>   if(sp!= omap->index_map.begin()) p = --sp;
+>   else p = sp;
+> 
+>   /// punch out 
+>   // 내가 짰지만.. 정말 잘짠거 같구나.. 
+>   while(p != omap->index_map.end()){
+>     os = p->second.ooff;
+>     oe = p->second.ooff + p->second.used_bytes;
+> 
+>     if (os > ne) 
+>       break;
+> 
+>     if (oe < ns)
+>       continue;
+> 
+> 
+>     buddy_index_t prev_idx = p->second;
+>     buddy_index_t post_idx = p->second;
+> 
+>     omap->index_map.erase(os);
+> 
+>     if(ns == os && ne == oe) {
+>       break;
+>     }
+> 
+>     if(ns > os && ns < oe){
+>       prev_idx.used_bytes -= (oe -ns + 1);
+>       omap->index_map.insert(make_pair(prev_idx.ooff, prev_idx));
+>     }
+> 
+>     if(ne > os && ne < oe) {
+>       post_idx.ooff -= (ne - os + 1);
+>       post_idx.foff -= (ne - os + 1);
+>       post_idx.used_bytes -= (ne - os + 1); 
+>       omap->index_map.insert(make_pair(post_idx.ooff, post_idx));
+>     }
+>     p++;
+>   }
+> 
+>   insert_new_index:
+>   // insert 
+>   omap->index_map.insert(make_pair(ooff, (*nidx)));
+> 
+> // for debugging... 
+>   for(map<off_t, buddy_index_t>::iterator tmp = omap->index_map.begin(); 
+>       tmp != omap->index_map.end() ; tmp++){
+>     ldout(cct, 10) << __func__ << " oid " << oid << " index_map = " << (*tmp) << dendl;
+>   }
+>   
+>   return 0;
+> 
+> }
+> 
+> /******
+>  * alloc_space 
+>  * 중요 함수 
+>  */
+> 
+> int BuddyLogDataFileObject::alloc_space(int type, const ghobject_t& oid, 
+>     const off_t ooff, const ssize_t bytes, vector<buddy_iov_t>& iov)
+> {
+>   ldout(cct, 10) << __func__ << " cid " << cid << " oid " << oid << " ooff " << ooff << dendl;
+> 
+>   off_t eoff = ooff + bytes;
+>   off_t bsoff = round_down(ooff); 
+>   off_t beoff = round_up(eoff);
+>   off_t off_in_blk = ooff - bsoff;
+>   uint64_t alloc_bytes = beoff - bsoff;
+> 
+>   // 1. allocate space at block granularity 
+>   off_t foff = tail_off + off_in_blk;
+>   tail_off += alloc_bytes;
+>   total_alloc_bytes += alloc_bytes;
+>   total_used_bytes += bytes;
+> 
+>   if((prealloc_bytes - total_alloc_bytes) < BUDDY_PREALLOC_LOW_WATERMARK) 
+>     preallocate(prealloc_bytes, BUDDY_PREALLOC_SIZE);
+> 
+>  
+>   // 3. create buddy_iov_t  
+>   //buddy_iov_t* niov = new buddy_iov_t(&cid, BD_ORIG_F, fname, ooff, foff, bytes); 
+>   //
+>   // 여기에서 0 대신에 ooff 를 주면 문제가 생김. 
+>   // 넘어온 data_bl 에서 "어디서부터 copy" 해올지를 저거 보고 결정하는데 
+>   // 0 을 주면 "지금 넘어온거의 처음" 부터라는 의미. 
+>   // 즉, off_in_src 가 되는게 맞음. 
+>   // 만약 쪼개진다면- 저걸 그 offset 에 맞게 0대신 세팅해야함. 
+>   // log 에서 하나로 할당할 때는 저렇게 하니까. 
+>   //
+>   buddy_iov_t* niov = new buddy_iov_t(&cid, BD_ORIG_F, fname, 0, foff, bytes); 
+>   iov.push_back(*niov);
+>   ldout(cct, 10) << __func__ << " niov " << *niov << " tail_off = " << tail_off << 
+>     " total_used_bytes " << total_used_bytes << dendl;    
+> 
+>   // 2. insert_index 로 추가시키기. 
+>   //insert_index(niov);
+>   int r = insert_index(oid, ooff, foff, bytes);
+>   if(r < 0)
+>     ldout(cct, 10) << __func__ << " Failed to insert index " << dendl;
+>  
+>   return 0;
+> }
+> 
+> /**********
+>  * release_space
+>  * */
+> 
+> int BuddyLogDataFileObject::release_space(const ghobject_t& oid)
+> {
+> 
+>   RWLock::WLocker l(lock);
+>   //off_t hoff = hash_to_hoff(oid);
+>   //return hash_index_map.erase(hoff);
+> 
+>   // find map 
+>   map<ghobject_t, buddy_index_map_t>::iterator omap_p = log_index_map.find(oid);
+> 
+>   // not found? create and insert entry. done! 
+>   if(omap_p == log_index_map.end()){
+>     ldout(cct, 15) << __func__ <<  " oid index does not exist " << dendl;
+>     return 0;
+>   }
+> 
+> 
+>   // found map 
+>   buddy_index_map_t omap = omap_p->second;
+> 
+>   for(map<off_t, buddy_index_t>::iterator p = omap.index_map.begin();
+>       p != omap.index_map.end(); p++) {
+> 
+>     ldout(cct, 10) << __func__ << " free index : " << p->second << dendl;
+>     // add to free map
+>     auto r = free_index_map.insert(make_pair(p->second.foff, p->second.alloc_bytes));
+>     if(!r.second) {
+>       ldout(cct, 10) << __func__ << " free_index_map already contains buddy_index_t " << *p << dendl;
+>       assert(0);
+>     }
+> 
+>     int ret = fallocate(dfd, FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE, p->second.foff, p->second.alloc_bytes);
+>     if (ret < 0 ){
+>       ldout(cct, 10) << __func__ << " free_index_map already contains buddy_index_t " << *p << dendl;
+>       assert(0);
+>     }
+>   }
+> 
+>   ldout(cct, 10) << __func__ << " free index size : " << free_index_map.size() << dendl;
+> 
+>   auto r = log_index_map.erase(oid);
+> 
+>   return 0;
+248c453
+< int BuddyHashIndexFile::get_space_info(const ghobject_t& oid, const off_t ooff, const ssize_t bytes, 
+---
+> int BuddyLogDataFileObject::get_space_info(const ghobject_t& oid, const off_t ooff, const ssize_t bytes, 
+251d455
+<   off_t hoff = hash_to_hoff(oid); 
+253c457,458
+<   ldout(cct, 10) << __func__ << " cid " << cid << " oid " << oid << " hoff " << hoff << dendl;
+---
+> 
+>   ldout(cct, 10) << __func__ << " cid " << cid << " oid " << oid << " ooff " << ooff << " bytes " << bytes << dendl;
+257,258c462,463
+<   // check pent hoff 
+<   map<off_t, buddy_hindex_t>::iterator p = hash_index_map.find(hoff);
+---
+>   // find map 
+>   map<ghobject_t, buddy_index_map_t>::iterator omap_p = log_index_map.find(oid);
+260,261c465
+<   if (p == hash_index_map.end()) {
+<     ldout(cct, 10) << "Failed to object file" << dendl;
+---
+>   if(omap_p == log_index_map.end()){
+265,267c469,489
+<   // found - end check 
+<   if (p->second.used_bytes < ooff + bytes) {
+<     ldout(cct, 10) << "Error: data is smaller than requested" << dendl;
+---
+>   // found map 
+>   buddy_index_map_t* omap = &omap_p->second;
+>   map<off_t, buddy_index_t>::iterator p;
+> 
+> // for debugging... 
+>   for(map<off_t, buddy_index_t>::iterator tmp = omap->index_map.begin(); 
+>       tmp != omap->index_map.end() ; tmp++){
+>     ldout(cct, 10) << __func__ << " oid " << oid << " index_map = " << (*tmp) << dendl;
+>   }
+> 
+> 
+>   ssize_t rbytes = bytes;
+>   off_t soff = ooff;
+>   off_t eoff = ooff + bytes;
+>   off_t foff = 0;
+>   ssize_t fbytes = 0;
+>   off_t peoff = 0;
+> 
+>   p = omap->index_map.upper_bound(soff);
+>   if (p == omap->index_map.begin()){
+>     ldout(cct, 10) << __func__ << " not found index starting with ooff " << ooff << dendl;
+271,275c493,516
+<   // found - normal  
+<   // ooff 는 read 에서는 사용할 필요 없음. 
+<   buddy_iov_t* niov = new buddy_iov_t(&cid, BD_ORIG_F, fname, 0, hoff + ooff, bytes); 
+<   iov.push_back(*niov);
+<   ldout(cct, 10) << __func__ << " niov " << *niov << dendl;
+---
+>   p--;
+> 
+>   while(rbytes > 0) {
+> 
+>     ldout(cct, 20) << __func__ << " rbytes = " << rbytes << " p.ooff " << p->second.ooff << " p.eoff " << p->second.ooff + p->second.used_bytes << dendl;
+> 
+>     assert(soff >= p->second.ooff && soff <= (p->second.ooff + p->second.used_bytes));
+> 
+>     peoff = p->second.ooff + p->second.used_bytes;
+> 
+>     foff = p->second.foff + (soff - p->second.ooff);
+>     fbytes = (peoff < eoff? peoff : eoff) - soff;
+> 
+>     buddy_iov_t* niov = new buddy_iov_t(&cid, BD_ORIG_F, fname, soff, foff, fbytes); 
+>     iov.push_back(*niov);
+> 
+>     rbytes -= fbytes;
+>     soff += fbytes;
+> 
+>     p++;
+>   }
+> 
+>   assert(rbytes == 0);
+> 
+281c522
+< 
+---
+> #if 0
+285c526
+< int BuddyHashIndexFile::truncate_space(const ghobject_t& oid, ssize_t size)
+---
+> int BuddyLogDataFileObject::truncate_space(const ghobject_t& oid, ssize_t size)
+293c534
+<   map<off_t, buddy_hindex_t>::iterator p = hash_index_map.find(hoff);
+---
+>   map<off_t, buddy_lindex_t>::iterator p = hash_index_map.find(hoff);
+325c566
+< int BuddyHashIndexFile::clone_space(const ghobject_t& ooid, 
+---
+> int BuddyLogDataFileObject::clone_space(const ghobject_t& ooid, 
+334c575
+<   map<off_t, buddy_hindex_t>::iterator op = hash_index_map.find(ohoff);
+---
+>   map<off_t, buddy_lindex_t>::iterator op = hash_index_map.find(ohoff);
+342c583
+< int BuddyHashIndexFile::clone_space(const ghobject_t& ooid, 
+---
+> int BuddyLogDataFileObject::clone_space(const ghobject_t& ooid, 
+356c597
+<   map<off_t, buddy_hindex_t>::iterator op = hash_index_map.find(ohoff);
+---
+>   map<off_t, buddy_lindex_t>::iterator op = hash_index_map.find(ohoff);
+388a630
+> #endif
+394c636
+< int BuddyHashIndexFile::write_fd(bufferlist& bl, uint64_t foff)
+---
+> int BuddyLogDataFileObject::write_fd(bufferlist& bl, uint64_t foff)
+396c638
+<   ldout(cct, 10) << __func__ << " hfd " << hfd << " bl.length " << bl.length() << " foff " << foff << dendl;
+---
+>   ldout(cct, 10) << __func__ << " dfd " << dfd << " bl.length " << bl.length() << " foff " << foff << dendl;
+398c640
+<   if (hfd < 0){
+---
+>   if (dfd < 0){
+422c664
+<   ldout(cct, 10) << __func__ << " hfd " << hfd << " abl.length(align) " << abl.length() << " align_foff " << align_foff << dendl;
+---
+>   ldout(cct, 10) << __func__ << " dfd " << dfd << " abl.length(align) " << abl.length() << " align_foff " << align_foff << dendl;
+424,425c666,667
+<   assert(abl.length() % BUDDY_FILE_BSIZE == 0);
+<   assert(align_foff % BUDDY_FILE_BSIZE == 0);
+---
+>   assert(abl.length() % BUDDY_FALLOC_SIZE == 0);
+>   assert(align_foff % BUDDY_FALLOC_SIZE == 0);
+427c669
+<   int ret = abl.write_fd(hfd, align_foff);
+---
+>   int ret = abl.write_fd(dfd, align_foff);
+446c688
+< void BuddyHashIndexFile::sync()
+---
+> void BuddyLogDataFileObject::sync()
+453c695
+<   if (hfd < 0) {
+---
+>   if (dfd < 0) {
+460c702
+<   ret = ::fsync(hfd);
+---
+>   ret = ::fsync(dfd);
+462c704
+<   ret = ::fdatasync(hfd);
+---
+>   ret = ::fdatasync(dfd);
+474,475d715
+< 
+< 
+479c719
+< int BuddyHashIndexFile::read_fd(bufferlist& bl, uint64_t foff, size_t len)
+---
+> int BuddyLogDataFileObject::read_fd(bufferlist& bl, uint64_t foff, size_t len)
+481d720
+< 
+490c729
+<   int ret = bl.read_fd(hfd, foff, len);
+---
+>   int ret = bl.read_fd(dfd, foff, len);
+503c742
+< int BuddyHashIndexFile::preallocate(uint64_t offset, size_t len)
+---
+> int BuddyLogDataFileObject::preallocate(uint64_t offset, size_t len)
+505c744
+<   ldout(cct, 10) << __func__ << " fd " << hfd << " offset " << offset << " len " << len << dendl;
+---
+>   ldout(cct, 10) << __func__ << " fd " << dfd << " offset " << offset << " len " << len << dendl;
+508c747
+<   if (hfd < 0) {
+---
+>   if (dfd < 0) {
+527c766
+<   ret = ftruncate(hfd, len);
+---
+>   ret = ftruncate(dfd, len);
+531c770
+<     ldout(cct, 10) << __func__ << " Failed to preallocate" << dendl; 
+---
+>     ldout(cct, 10) << __func__ << " Failed to ftruncate" << dendl; 
+535c774,779
+<   ret = fallocate(hfd, 0, offset, (uint64_t)1 << 34); // 16G preallocate  
+---
+>   ret = fallocate(dfd, 0, offset, len);
+>   if (ret < 0) {
+>     ldout(cct, 10) << __func__ << " Failed to fallocate" << dendl; 
+>     return -errno;
+>   }
+>   //ret = fallocate(dfd, 0, offset, (uint64_t)1 << 34); // 16G preallocate  
+564c808,809
+< void BuddyHashIndexFile::dump_hash_index_map()
+---
+> #if 0
+> void BuddyLogDataFileObject::dump_hash_index_map()
+571c816
+<   for (map<off_t, buddy_hindex_t>::iterator p = hash_index_map.begin();
+---
+>   for (map<off_t, buddy_lindex_t>::iterator p = hash_index_map.begin();
+581c826
+< void BuddyHashIndexFile::_dump_hash_index_map()
+---
+> void BuddyLogDataFileObject::_dump_hash_index_map()
+586c831
+<   for (map<off_t, buddy_hindex_t>::iterator p = hash_index_map.begin();
+---
+>   for (map<off_t, buddy_lindex_t>::iterator p = hash_index_map.begin();
+593,594c838
+< 
+< 
+---
+> #endif

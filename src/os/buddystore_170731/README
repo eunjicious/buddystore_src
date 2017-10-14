@@ -1,0 +1,91 @@
+
+
+class chunk_manager
+
+
+class BuddyManager //  
+
+** data structure 
+
+
+## 아래 Index 는 collection 에 추가해야 함. 
+BuddyHashIndex ## for a collection  
+: map <uint32_t, vector<uint64_t>>
+: enum {data, xattr, oheader, omap} 
+
+
+** op 
+
+alloc_buddy()
+free_buddy()
+
+
+#####
+other operations 
+
+
+#############
+BuddyStore::read()
+	현재: object 에 저장된 buffferlist 에서 해당되는 부분을 substr 으로 읽어 return 해줌. 
+	추가: 파일에서의 offset 을 찾아야 함. BuddyHashIndex 클래스를 이용해서 cid 는 BuddyHashIndex 접근할때. 그 다음엔 object 의 hash 값으로 찾기. 그런데 그냥 cid 를 둬서.. BuddyHashIndex 클래스 하나만 두고 할수도 있을듯. 
+
+BuddyStore::getattrs()
+	현재: object 클래스에 xattr 를 map 형태로 <name, value> 로 관리하고 있음. 
+	추가: 파일에서 해당 object 에 있는 xattr 을 읽어오기. index 에서 찾아서, file p서:
+
+#######################################
+#  do_transaction : write operations  #
+#######################################
+
+#############
+OP_NOP : 
+	현재: 없음. 
+	추가: 없음 
+
+
+#############
+OP_TOUCH : _touch(cid, od) 
+	현재: collection 에서 object 를 하나 할당함. 
+	추가: collection 의 bd_object_map 업데이트. checkpoint 할 때 이걸 collection 의 data 위치에 적을 것. 이건.. collection 의 data file 에 쓰면 될듯. 
+
+	설명: 파일에서 공간이 있는지 확인하고, alloc 받을 수 있지만, 실제로 write 되는 크기를 모르니까 write 때 alloc 하는게 맞는듯. 
+
+
+#############
+OP_WRITE : _write 
+	현재: Transaction 의 data_bl (data를 담고 있는 bufferlist) 를 decode 해서 새로운 bufferlist 에 담은다음, object 가 관리하는 data 에 write 를 함. 
+	추가: object_store 에서 alloc() 을 한 후 write 수행. 
+	
+	설명: 실제 스토리지 까지는 내리지 말고, io 를 할 수 있도록 뭔가.. 매달아 두고, 마지막 transaction 끝날때 한꺼번에 io 를 하면 좋을듯. 
+
+
+#############
+OP_ZERO : _zero 
+	추가: write 랑 같음. 다만 data 만 0으로 채워서 보내기. 	
+
+
+#############
+OP_TRUNCATE : _truncate 
+	현재: 주어진 크기 만큼으로 bufferdata 크기를 바꾸고, object size도 바꿈. 
+	추가: 주어진 크기를 벗어나는 데이터는 파일에서 invalidate 시킴.  
+
+
+############
+OP_REMOVE : _remove 
+	현재: collection 에서 해당하는 object 를 지움. 
+	추가: 파일에 해당 object 의 영역을 invalidate 시키기. 
+
+
+
+
+
+- setxattr 
+
+
+- omap_getkeys 
+
+
+- omap_setkeys 
+
+
+-  

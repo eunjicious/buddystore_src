@@ -1,0 +1,6 @@
+
+class BuddyHashIndexFile {
+
+  int a;
+
+};

@@ -1,0 +1,39 @@
+485:      r = object_map->clear(o, &spos);
+499:      /* Ensure that replay of this op doesn't result in the object_map
+503:	object_map->sync(&o, &spos);
+1678:    object_map.reset(dbomap);
+1768:    if (cct->_conf->filestore_debug_omap_check && !object_map->check(err2)) {
+1825:  object_map.reset();
+1919:  object_map.reset();
+2275:  int ret = object_map->sync();
+2381:    // sync object_map too.  even if this object has a header or keys,
+2384:    object_map->sync(hoid, &spos);
+2433:  // sync object_map too.  even if this object has a header or keys,
+2436:  object_map->sync(hoid, &spos);
+3593:    r = object_map->clone(oldoid, newoid, &spos);
+3943:      if (cct->_conf->filestore_debug_omap_check && !object_map->check(errstream)) {
+3983:	int err = object_map->sync();
+3985:	  derr << "object_map sync got " << cpp_strerror(err) << dendl;
+3986:	  assert(0 == "object_map sync returned error");
+4354:    r = object_map->get_xattrs(oid, to_get, &got);
+4408:    dout(10) << __func__ << " no xattr exists in object_map r = " << r << dendl;
+4418:    r = object_map->get_all_xattrs(oid, &omap_attrs);
+4424:    r = object_map->get_xattrs(oid, omap_attrs, &omap_aset);
+4527:    r = object_map->remove_xattrs(oid, omap_remove, &spos);
+4538:    r = object_map->set_xattrs(oid, omap_set, &spos);
+4583:    r = object_map->remove_xattrs(oid, to_remove, &spos);
+4633:    dout(10) << __func__ << " no xattr exists in object_map r = " << r << dendl;
+4643:    r = object_map->get_all_xattrs(oid, &omap_attrs);
+4649:    r = object_map->remove_xattrs(oid, omap_attrs, &spos);
+4975:  r = object_map->get(hoid, header, out);
+5004:  r = object_map->get_header(hoid, bl);
+5029:  r = object_map->get_keys(hoid, keys);
+5061:  r = object_map->get_values(hoid, keys, out);
+5094:  r = object_map->check_keys(hoid, keys, out);
+5126:  return object_map->get_iterator(hoid);
+5337:      r = 0; // don't know if object_map was cloned
+5356:      r = object_map->rename(oldoid, o, &spos);
+5418:  r = object_map->clear_keys_header(hoid, &spos);
+5454:  r = object_map->set_keys(hoid, aset, &spos);
+5480:  r = object_map->rm_keys(hoid, keys, &spos);
+5519:  return object_map->set_header(hoid, bl, &spos);

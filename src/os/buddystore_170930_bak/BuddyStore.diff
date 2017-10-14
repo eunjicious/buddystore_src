@@ -1,0 +1,303 @@
+38a39,40
+> 
+> 
+55d56
+<   data_hold_in_memory(cct->_conf->buddystore_data_hold_in_memory),
+128,133d128
+< 
+< 
+< /*******************
+<  * journaling functions 
+< ****************/
+< 
+175,178d169
+< /*******************
+<  * mount  
+< ****************/
+< 
+219a211,214
+> 
+> #ifdef ALICIA
+>   bdfs.mount();
+> #endif
+223,225d217
+< /*******************
+<  * umount  
+< ****************/
+260a253,256
+> 
+> #ifdef ALICIA
+>   bdfs.umount();
+> #endif
+273,274d268
+< 
+< 
+276,277d269
+< 
+<     // collections 
+280a273
+>     /// collection encode 
+283,284c276,277
+< 
+<     // EUNJI: coll file map's encode :  
+---
+>     // EUNJI: coll_file_map encode 
+>     // 만약 coll file 이 있다면 그것도 같이 encode 하자. 
+288c281
+<       ceph::unordered_map<coll_t, BuddyLogDataFileObject*>::iterator fp = coll_file_map.find(p->first);
+---
+>       ceph::unordered_map<coll_t, BuddyHashIndexFile*>::iterator fp = coll_file_map.find(p->first);
+292d284
+< 
+305a298,314
+> 
+> #if 0
+> #ifdef EUNJI
+>     //p->second->data_file.close_file();
+>     //
+>     {
+>       RWLock::WLocker l(coll_file_lock);
+>       ceph::unordered_map<coll_t, BuddyHashIndexFile*>::iterator fp = coll_file_map.find(p->first);
+>       if(fp != coll_file_map.end()){
+> 	// hash map file encode 
+> 	fp->second->encode(hbl);
+> 	fp->second->close_file();
+> 	dout(10) << __func__ << " coll_file_map cid " << p->first << " hbl " << hbl.length() << dendl;
+>       }
+>     }
+> #endif
+> #endif
+447c456
+<     int exist = 0;
+---
+>     int exist = -1;
+451,452c460
+<       BuddyLogDataFileObject* datafile = new BuddyLogDataFileObject(cct, (*q), basedir + "/" + (*q).to_str() + ".data", data_directio);
+<       //BuddyLogDataFileObject* datafile = new BuddyLogDataFileObject(cct, (*q), basedir + "/" + (*q).to_str() + ".data", data_directio);
+---
+>       BuddyHashIndexFile* datafile = new BuddyHashIndexFile(cct, (*q), basedir + "/" + (*q).to_str() + ".data", data_directio);
+549,554d556
+< 
+< #ifdef EUNJI
+<   st->allocated = get_fpool_allocated_bytes();
+<   st->stored = get_fpool_stored_bytes();
+< #endif
+< 
+557,558d558
+<   dout(10) << __func__ << " fpool_stored / alloc_bytes: " << st->stored 
+< 	   << "/" << st->allocated << dendl;
+562,588d561
+< #ifdef EUNJI
+< ssize_t BuddyStore::get_fpool_allocated_bytes()
+< {
+<   ssize_t sum = 0;
+<   for (ceph::unordered_map<coll_t, BuddyLogDataFileObject*>::iterator p = coll_file_map.begin();
+<       p != coll_file_map.end(); p++)
+<   {
+<     sum += p->second->total_alloc_bytes;
+< 
+<   }
+<   return sum;
+< }
+< 
+< ssize_t BuddyStore::get_fpool_stored_bytes()
+< {
+<   ssize_t sum = 0;
+<   for (ceph::unordered_map<coll_t, BuddyLogDataFileObject*>::iterator p = coll_file_map.begin();
+<       p != coll_file_map.end(); p++)
+<   {
+<     sum += p->second->total_used_bytes;
+< 
+<   }
+<   return sum;
+< }
+< #endif
+< 
+< 
+708d680
+<   int ret = 0; 
+710,712c682,685
+<   // 사실 여기서 data_hold_in_memory 체크 안해도 memory 에서 그냥 return  하긴함.   
+<   if (data_hold_in_memory)
+<     ret = o->read(offset, l, bl);
+---
+>   /// 여기서 받아오는데 
+>   // 예의상 bufferlist 의 read 함수 한번 부르고 hash file read 로 넘어감. 
+>   // 나중에 뭔가 caching 할 떄를 대비해서. 
+>   int ret = o->read(offset, l, bl);
+714,715d686
+< #ifdef EUNJI
+<   // else 
+718c689
+<     BuddyLogDataFileObject* data_file;
+---
+>     BuddyHashIndexFile* data_file;
+723c694
+<     ceph::unordered_map<coll_t, BuddyLogDataFileObject*>::iterator p = coll_file_map.find(c->cid);
+---
+>     ceph::unordered_map<coll_t, BuddyHashIndexFile*>::iterator p = coll_file_map.find(c->cid);
+736,739c707,708
+<     if (ret < 0){
+<       dout(5) << __func__ << " Not found object in data file " << dendl;
+< ////      return -ENOENT;
+<     }
+---
+>     if (ret < 0)
+>       return -ENOENT;
+744d712
+<       dout(10) << __func__ << " " << (*iovp) << dendl;
+750d717
+< #endif
+1117c1084
+<   dout(10) << __func__ << "transactions = " << tls.size() << " osd_op " << osd_op << dendl;
+---
+>   dout(10) << __func__ << "transactions = " << tls.size() << dendl;
+1124a1092,1094
+>   dout(10) << osd_op << dendl;
+> 
+> 
+1133c1103
+<     dout(20) << "queue_transactions existing " << osr << " " << *osr << dendl;
+---
+>     dout(5) << "queue_transactions existing " << osr << " " << *osr << dendl;
+1139c1109
+<     dout(20) << "queue_transactions new " << osr << " " << *osr << dendl;
+---
+>     dout(5) << "queue_transactions new " << osr << " " << *osr << dendl;
+1169c1139
+<   dout(20) << "journal prepare entry " << dendl;
+---
+>   dout(10) << "journal prepare entry " << dendl;
+1362c1332
+<       BuddyLogDataFileObject* data_file; 
+---
+>       BuddyHashIndexFile* data_file; 
+1370c1340
+< 	ceph::unordered_map<coll_t, BuddyLogDataFileObject*>::iterator p = coll_file_map.find(cid);
+---
+> 	ceph::unordered_map<coll_t, BuddyHashIndexFile*>::iterator p = coll_file_map.find(cid);
+1374,1375c1344
+< 	  data_file = new BuddyLogDataFileObject(cct, cid, basedir + "/" + cid.to_str() + ".data", data_directio);
+< 	  dout(10) << __func__ << " data_file is created : " << data_file->fname << dendl;
+---
+> 	  data_file = new BuddyHashIndexFile(cct, cid, basedir + "/" + cid.to_str() + ".data", data_directio);
+1385,1386c1354,1355
+< 	dout(10) << "Failed to alloc_space oid = " << oid << " off = " << off << " len = " << len << dendl;
+< 	//data_file->dump_hash_index_map();
+---
+> 	dout(10) << "[EUNJI] collision with off " << off << " len " << len << dendl;
+> 	data_file->dump_hash_index_map();
+1423c1392,1393
+<     dout(10) << __func__ << " start_off " << start_off << " ooff " << (*ip).off_in_src << " len " << (*ip).bytes << " bl.length() " << bl.length() << dendl;
+---
+> 
+>     dout(10) << __func__ << " start_off " << start_off << " ooff " << (*ip).ooff << " len " << (*ip).bytes << " bl.length() " << bl.length() << dendl;
+1426,1429c1396
+<   
+<     // prepad 는 write_fd 에서 align 안맞는 경우 앞뒤로 넣어줌. 
+< 
+<     newdata.substr_of(bl, start_off + (*ip).off_in_src, (*ip).bytes);
+---
+>     newdata.substr_of(bl, start_off + (*ip).ooff, (*ip).bytes);
+1619a1587,1589
+> #ifdef ALICIA
+> 	r = bdfs.buddy_destroy_collection(cid, *bt);
+> #endif
+1628a1599,1601
+> #ifdef ALICIA
+> 	r = bdfs.buddy_collection_add(ncid, ocid, oid, *bt);
+> #endif
+1650a1624,1626
+> #ifdef ALICIA
+> 	r = bdfs.buddy_collection_move_rename(oldcid, oldoid, newcid, newoid, *bt);
+> #endif
+1661a1638,1640
+> #ifdef ALICIA
+> 	r = bdfs.buddy_collection_move_rename(cid, oldoid, cid, newoid, *bt);
+> #endif
+1707a1687,1689
+> #ifdef ALICIA
+> 	r = bdfs.buddy_omap_rmkeys(cid, oid, keys_bl, *bt);
+> #endif
+1717a1700,1702
+> #ifdef ALICIA
+> 	r = bdfs.buddy_omap_rmkeyrange(cid, oid, first, last, *bt);
+> #endif
+1726a1712,1714
+> #ifdef ALICIA
+> 	r = bdfs.buddy_omap_setheader(cid, oid, bl, *bt);
+> #endif
+1738a1727,1729
+> #ifdef ALICIA
+> 	r = bdfs.buddy_split_collection(cid, bits, rem, dest, *bt);
+> #endif
+1838,1839d1828
+< 
+< 
+1842,1845c1831
+< 
+<     // EUNJI 
+<     if (data_hold_in_memory)
+<       o->write(offset, bl);
+---
+>     o->write(offset, bl);
+1897c1883
+<     BuddyLogDataFileObject* data_file;
+---
+>     BuddyHashIndexFile* data_file;
+1906c1892
+<     ceph::unordered_map<coll_t, BuddyLogDataFileObject*>::iterator p = coll_file_map.find(c->cid);
+---
+>     ceph::unordered_map<coll_t, BuddyHashIndexFile*>::iterator p = coll_file_map.find(c->cid);
+2272,2277d2257
+< #ifdef EUNJI 
+<   // for checking 
+<   assert(0);
+< 
+< #endif
+< 
+2312,2314d2291
+< 
+<   // holdinmemory constructor 
+<   
+2321,2326d2297
+< #if 0
+< #ifdef EUNJI
+<   if (!data_hold_in_memory)
+<     return 0;
+< #endif
+< #endif
+2327a2299
+> #ifdef HOLD_IN_MEMORY
+2330a2303,2305
+> #else
+>   return 0;
+> #endif
+2338a2314
+>   
+2345c2321,2322
+<  
+---
+> 
+> #ifdef HOLD_IN_MEMORY
+2367c2344
+< 
+---
+> #endif
+3009c2986
+<   BuddyLogDataFileObject* data_file;
+---
+>   BuddyHashIndexFile* data_file;
+3038c3015
+< 	ceph::unordered_map<coll_t, BuddyLogDataFileObject*>::iterator p = coll_file_map.find(*(iov.cid));
+---
+> 	ceph::unordered_map<coll_t, BuddyHashIndexFile*>::iterator p = coll_file_map.find(*(iov.cid));
+3047,3051c3024,3025
+<       // foff 가 실제 offset 
+<       assert(iov.foff % BUDDY_FALLOC_SIZE == 0);
+< 
+<       int r = data_file->write_fd(iov.data_bl, iov.foff);
+<       //int r = data_file->write_fd(iov.data_bl, 0);
+---
+>       //int r = data_file->write_fd(iov.data_bl, iov.foff);
+>       int r = data_file->write_fd(iov.data_bl, 0);
